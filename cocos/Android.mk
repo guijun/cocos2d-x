@@ -6,6 +6,12 @@ LOCAL_MODULE := cocos2dx_internal_static
 
 LOCAL_MODULE_FILENAME := libcocos2dxinternal
 
+ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
+MATHNEONFILE := math/MathUtil.cpp.neon
+else
+MATHNEONFILE := math/MathUtil.cpp
+endif
+
 LOCAL_SRC_FILES := \
 cocos2d.cpp \
 2d/CCAction.cpp \
@@ -87,8 +93,8 @@ platform/CCImage.cpp \
 math/CCAffineTransform.cpp \
 math/CCGeometry.cpp \
 math/CCVertex.cpp \
+$(MATHNEONFILE) \
 math/Mat4.cpp \
-math/MathUtil.cpp \
 math/Quaternion.cpp \
 math/TransformUtils.cpp \
 math/Vec2.cpp \
@@ -215,7 +221,6 @@ LOCAL_C_INCLUDES := $(LOCAL_PATH) \
 
 LOCAL_EXPORT_LDLIBS := -lGLESv2 \
                        -llog \
-                       -lz \
                        -landroid
 
 LOCAL_STATIC_LIBRARIES := cocos_freetype2_static
@@ -224,6 +229,7 @@ LOCAL_STATIC_LIBRARIES += cocos_jpeg_static
 LOCAL_STATIC_LIBRARIES += cocos_tiff_static
 LOCAL_STATIC_LIBRARIES += cocos_webp_static
 LOCAL_STATIC_LIBRARIES += cocos_chipmunk_static
+LOCAL_STATIC_LIBRARIES += cocos_zlib_static
 
 LOCAL_WHOLE_STATIC_LIBRARIES := cocos2dxandroid_static
 
@@ -232,10 +238,6 @@ LOCAL_CFLAGS   :=  -DUSE_FILE32API
 LOCAL_CPPFLAGS := -Wno-deprecated-declarations -Wno-extern-c-compat
 LOCAL_EXPORT_CFLAGS   := -DUSE_FILE32API
 LOCAL_EXPORT_CPPFLAGS := -Wno-deprecated-declarations -Wno-extern-c-compat
-
-ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
-LOCAL_ARM_NEON  := true
-endif
 
 include $(BUILD_STATIC_LIBRARY)
 
@@ -258,6 +260,7 @@ include $(BUILD_STATIC_LIBRARY)
 $(call import-module,freetype2/prebuilt/android)
 $(call import-module,platform/android)
 $(call import-module,png/prebuilt/android)
+$(call import-module,zlib/prebuilt/android)
 $(call import-module,jpeg/prebuilt/android)
 $(call import-module,tiff/prebuilt/android)
 $(call import-module,webp/prebuilt/android)

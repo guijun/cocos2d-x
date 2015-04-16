@@ -237,6 +237,11 @@
 
 
 --------------------------------------------------------
+-- the ccs AlphaFrame
+-- @field [parent=#ccs] AlphaFrame#AlphaFrame AlphaFrame preloaded module
+
+
+--------------------------------------------------------
 -- the ccs EventFrame
 -- @field [parent=#ccs] EventFrame#EventFrame EventFrame preloaded module
 
@@ -244,6 +249,11 @@
 --------------------------------------------------------
 -- the ccs ZOrderFrame
 -- @field [parent=#ccs] ZOrderFrame#ZOrderFrame ZOrderFrame preloaded module
+
+
+--------------------------------------------------------
+-- the ccs BlendFuncFrame
+-- @field [parent=#ccs] BlendFuncFrame#BlendFuncFrame BlendFuncFrame preloaded module
 
 
 --------------------------------------------------------

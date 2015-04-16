@@ -126,6 +126,10 @@ Node::Node(void)
 , _physicsScaleStartY(1.0f)
 , _physicsRotation(0.0f)
 , _physicsTransformDirty(true)
+, _updateTransformFromPhysics(true)
+, _physicsWorld(nullptr)
+, _physicsBodyAssociatedWith(0)
+, _physicsRotationOffset(0.0f)
 #endif
 , _displayedOpacity(255)
 , _realOpacity(255)
@@ -136,12 +140,12 @@ Node::Node(void)
 , _cameraMask(1)
 {
     // set default scheduler and actionManager
-    Director *director = Director::getInstance();
-    _actionManager = director->getActionManager();
+    _director = Director::getInstance();
+    _actionManager = _director->getActionManager();
     _actionManager->retain();
-    _scheduler = director->getScheduler();
+    _scheduler = _director->getScheduler();
     _scheduler->retain();
-    _eventDispatcher = director->getEventDispatcher();
+    _eventDispatcher = _director->getEventDispatcher();
     _eventDispatcher->retain();
     
 #if CC_ENABLE_SCRIPT_BINDING
@@ -197,6 +201,8 @@ Node::~Node()
 
 #endif
     
+    stopAllActions();
+    unscheduleAllCallbacks();
     CC_SAFE_RELEASE_NULL(_actionManager);
     CC_SAFE_RELEASE_NULL(_scheduler);
     
@@ -330,6 +336,12 @@ void Node::setRotation(float rotation)
     
     _rotationZ_X = _rotationZ_Y = rotation;
     _transformUpdated = _transformDirty = _inverseDirty = true;
+#if CC_USE_PHYSICS
+    if (_physicsWorld && _physicsBodyAssociatedWith > 0)
+    {
+        _physicsWorld->_updateBodyTransform = true;
+    }
+#endif
     
     updateRotationQuat();
 }
@@ -466,6 +478,12 @@ void Node::setScale(float scale)
     
     _scaleX = _scaleY = _scaleZ = scale;
     _transformUpdated = _transformDirty = _inverseDirty = true;
+#if CC_USE_PHYSICS
+    if (_physicsWorld && _physicsBodyAssociatedWith > 0)
+    {
+        _physicsWorld->_updateBodyTransform = true;
+    }
+#endif
 }
 
 /// scaleX getter
@@ -483,6 +501,12 @@ void Node::setScale(float scaleX,float scaleY)
     _scaleX = scaleX;
     _scaleY = scaleY;
     _transformUpdated = _transformDirty = _inverseDirty = true;
+#if CC_USE_PHYSICS
+    if (_physicsWorld && _physicsBodyAssociatedWith > 0)
+    {
+        _physicsWorld->_updateBodyTransform = true;
+    }
+#endif
 }
 
 /// scaleX setter
@@ -493,6 +517,12 @@ void Node::setScaleX(float scaleX)
     
     _scaleX = scaleX;
     _transformUpdated = _transformDirty = _inverseDirty = true;
+#if CC_USE_PHYSICS
+    if (_physicsWorld && _physicsBodyAssociatedWith > 0)
+    {
+        _physicsWorld->_updateBodyTransform = true;
+    }
+#endif
 }
 
 /// scaleY getter
@@ -532,6 +562,12 @@ void Node::setScaleY(float scaleY)
     
     _scaleY = scaleY;
     _transformUpdated = _transformDirty = _inverseDirty = true;
+#if CC_USE_PHYSICS
+    if (_physicsWorld && _physicsBodyAssociatedWith > 0)
+    {
+        _physicsWorld->_updateBodyTransform = true;
+    }
+#endif
 }
 
 
@@ -563,6 +599,12 @@ void Node::setPosition(float x, float y)
     
     _transformUpdated = _transformDirty = _inverseDirty = true;
     _usingNormalizedPosition = false;
+#if CC_USE_PHYSICS
+    if (_physicsWorld && _physicsBodyAssociatedWith > 0)
+    {
+        _physicsWorld->_updateBodyTransform = true;
+    }
+#endif
 }
 
 void Node::setPosition3D(const Vec3& position)
@@ -609,10 +651,6 @@ void Node::setPositionZ(float positionZ)
     _transformUpdated = _transformDirty = _inverseDirty = true;
 
     _positionZ = positionZ;
-
-    // FIXME: BUG
-    // Global Z Order should based on the modelViewTransform
-    setGlobalZOrder(positionZ);
 }
 
 /// position getter
@@ -631,6 +669,12 @@ void Node::setNormalizedPosition(const Vec2& position)
     _usingNormalizedPosition = true;
     _normalizedPositionDirty = true;
     _transformUpdated = _transformDirty = _inverseDirty = true;
+#if CC_USE_PHYSICS
+    if (_physicsWorld && _physicsBodyAssociatedWith > 0)
+    {
+        _physicsWorld->_updateBodyTransform = true;
+    }
+#endif
 }
 
 ssize_t Node::getChildrenCount() const
@@ -1016,8 +1060,17 @@ void Node::addChildHelper(Node* child, int localZOrder, int tag, const std::stri
     child->setOrderOfArrival(s_globalOrderOfArrival++);
     
 #if CC_USE_PHYSICS
+    _physicsBodyAssociatedWith += child->_physicsBodyAssociatedWith;
+    auto parentNode = this;
+    while (parentNode->_parent)
+    {
+        parentNode = parentNode->_parent;
+        parentNode->_physicsBodyAssociatedWith += child->_physicsBodyAssociatedWith;
+    }
+
+    auto scene = dynamic_cast<Scene*>(parentNode);
+
     // Recursive add children with which have physics body.
-    auto scene = this->getScene();
     if (scene && scene->getPhysicsWorld())
     {
         scene->addChildToPhysicsWorld(child);
@@ -1227,7 +1280,7 @@ void Node::sortAllChildren()
 
 void Node::draw()
 {
-    auto renderer = Director::getInstance()->getRenderer();
+    auto renderer = _director->getRenderer();
     draw(renderer, _modelViewTransform, true);
 }
 
@@ -1237,8 +1290,8 @@ void Node::draw(Renderer* renderer, const Mat4 &transform, uint32_t flags)
 
 void Node::visit()
 {
-    auto renderer = Director::getInstance()->getRenderer();
-    auto& parentTransform = Director::getInstance()->getMatrix(MATRIX_STACK_TYPE::MATRIX_STACK_MODELVIEW);
+    auto renderer = _director->getRenderer();
+    auto& parentTransform = _director->getMatrix(MATRIX_STACK_TYPE::MATRIX_STACK_MODELVIEW);
     visit(renderer, parentTransform, true);
 }
 
@@ -1270,9 +1323,16 @@ uint32_t Node::processParentFlags(const Mat4& parentTransform, uint32_t parentFl
 
     if(flags & FLAGS_DIRTY_MASK)
         _modelViewTransform = this->transform(parentTransform);
-
+    
+#if CC_USE_PHYSICS
+    if (_updateTransformFromPhysics) {
+        _transformUpdated = false;
+        _contentSizeDirty = false;
+    }
+#else
     _transformUpdated = false;
     _contentSizeDirty = false;
+#endif
 
     return flags;
 }
@@ -1280,7 +1340,7 @@ uint32_t Node::processParentFlags(const Mat4& parentTransform, uint32_t parentFl
 bool Node::isVisitableByVisitingCamera() const
 {
     auto camera = Camera::getVisitingCamera();
-    bool visibleByCamera = camera ? (unsigned short)camera->getCameraFlag() & _cameraMask : true;
+    bool visibleByCamera = camera ? ((unsigned short)camera->getCameraFlag() & _cameraMask) != 0 : true;
     return visibleByCamera;
 }
 
@@ -1297,9 +1357,8 @@ void Node::visit(Renderer* renderer, const Mat4 &parentTransform, uint32_t paren
     // IMPORTANT:
     // To ease the migration to v3.0, we still support the Mat4 stack,
     // but it is deprecated and your code should not rely on it
-    Director* director = Director::getInstance();
-    director->pushMatrix(MATRIX_STACK_TYPE::MATRIX_STACK_MODELVIEW);
-    director->loadMatrix(MATRIX_STACK_TYPE::MATRIX_STACK_MODELVIEW, _modelViewTransform);
+    _director->pushMatrix(MATRIX_STACK_TYPE::MATRIX_STACK_MODELVIEW);
+    _director->loadMatrix(MATRIX_STACK_TYPE::MATRIX_STACK_MODELVIEW, _modelViewTransform);
     
     bool visibleByCamera = isVisitableByVisitingCamera();
 
@@ -1330,7 +1389,7 @@ void Node::visit(Renderer* renderer, const Mat4 &parentTransform, uint32_t paren
         this->draw(renderer, _modelViewTransform, flags);
     }
 
-    director->popMatrix(MATRIX_STACK_TYPE::MATRIX_STACK_MODELVIEW);
+    _director->popMatrix(MATRIX_STACK_TYPE::MATRIX_STACK_MODELVIEW);
     
     // FIX ME: Why need to set _orderOfArrival to 0??
     // Please refer to https://github.com/cocos2d/cocos2d-x/pull/6920
@@ -1696,48 +1755,53 @@ const Mat4& Node::getNodeToParentTransform() const
         float x = _position.x;
         float y = _position.y;
         float z = _positionZ;
-
+        
         if (_ignoreAnchorPointForPosition)
         {
             x += _anchorPointInPoints.x;
             y += _anchorPointInPoints.y;
         }
-
+        
         bool needsSkewMatrix = ( _skewX || _skewY );
-        // Rotation values
-        // Change rotation code to handle X and Y
-        // If we skew with the exact same value for both x and y then we're simply just rotating
-        float cx = 1, sx = 0, cy = 1, sy = 0;
-        if (_rotationZ_X != _rotationZ_Y || (! needsSkewMatrix && !_anchorPointInPoints.equals(Vec2::ZERO)))
-        {
-            float radiansX = -CC_DEGREES_TO_RADIANS(_rotationZ_X);
-            float radiansY = -CC_DEGREES_TO_RADIANS(_rotationZ_Y);
-            cx = cosf(radiansX);
-            sx = sinf(radiansX);
-            cy = cosf(radiansY);
-            sy = sinf(radiansY);
-        }
-
+        
+        
         Vec2 anchorPoint(_anchorPointInPoints.x * _scaleX, _anchorPointInPoints.y * _scaleY);
-
-        // optimization:
-        // inline anchor point calculation if skew is not needed
-        // Adjusted transform calculation for rotational skew
+        
+        // caculate real position
         if (! needsSkewMatrix && !_anchorPointInPoints.equals(Vec2::ZERO))
         {
-            x += cy * -anchorPoint.x + -sx * -anchorPoint.y;
-            y += sy * -anchorPoint.x +  cx * -anchorPoint.y;
+            x += -anchorPoint.x;
+            y += -anchorPoint.y;
         }
-
-        // Build Transform Matrix
-        // Adjusted transform calculation for rotational skew
+        
+        // Build Transform Matrix = translation * rotation * scale
+        Mat4 translation;
+        //move to anchor point first, then rotate
+        Mat4::createTranslation(x + anchorPoint.x, y + anchorPoint.y, z, &translation);
+        
         Mat4::createRotation(_rotationQuat, &_transform);
+        
         if (_rotationZ_X != _rotationZ_Y)
         {
+            // Rotation values
+            // Change rotation code to handle X and Y
+            // If we skew with the exact same value for both x and y then we're simply just rotating
+            float radiansX = -CC_DEGREES_TO_RADIANS(_rotationZ_X);
+            float radiansY = -CC_DEGREES_TO_RADIANS(_rotationZ_Y);
+            float cx = cosf(radiansX);
+            float sx = sinf(radiansX);
+            float cy = cosf(radiansY);
+            float sy = sinf(radiansY);
+            
             float m0 = _transform.m[0], m1 = _transform.m[1], m4 = _transform.m[4], m5 = _transform.m[5], m8 = _transform.m[8], m9 = _transform.m[9];
             _transform.m[0] = cy * m0 - sx * m1, _transform.m[4] = cy * m4 - sx * m5, _transform.m[8] = cy * m8 - sx * m9;
             _transform.m[1] = sy * m0 + cx * m1, _transform.m[5] = sy * m4 + cx * m5, _transform.m[9] = sy * m8 + cx * m9;
         }
+        _transform = translation * _transform;
+        //move by (-anchorPoint.x, -anchorPoint.y, 0) after rotation
+        _transform.translate(-anchorPoint.x, -anchorPoint.y, 0);
+        
+        
         if (_scaleX != 1.f)
         {
             _transform.m[0] *= _scaleX, _transform.m[1] *= _scaleX, _transform.m[2] *= _scaleX;
@@ -1750,7 +1814,6 @@ const Mat4& Node::getNodeToParentTransform() const
         {
             _transform.m[8] *= _scaleZ, _transform.m[9] *= _scaleZ, _transform.m[10] *= _scaleZ;
         }
-        _transform.m[12] = x, _transform.m[13] = y, _transform.m[14] = z;
         
         // FIXME:: Try to inline skew
         // If skew is needed, apply skew and then anchor point
@@ -1764,9 +1827,9 @@ const Mat4& Node::getNodeToParentTransform() const
                 0,  0,  0, 1
             };
             Mat4 skewMatrix(skewMatArray);
-
+            
             _transform = _transform * skewMatrix;
-
+            
             // adjust anchor point
             if (!_anchorPointInPoints.equals(Vec2::ZERO))
             {
@@ -1776,15 +1839,15 @@ const Mat4& Node::getNodeToParentTransform() const
                 _transform.m[13] += _transform.m[1] * -_anchorPointInPoints.x + _transform.m[5] * -_anchorPointInPoints.y;
             }
         }
-
+        
         if (_useAdditionalTransform)
         {
             _transform = _transform * _additionalTransform;
         }
-
+        
         _transformDirty = false;
     }
-
+    
     return _transform;
 }
 
@@ -1903,7 +1966,7 @@ Vec2 Node::convertToWorldSpaceAR(const Vec2& nodePoint) const
 Vec2 Node::convertToWindowSpace(const Vec2& nodePoint) const
 {
     Vec2 worldPoint(this->convertToWorldSpace(nodePoint));
-    return Director::getInstance()->convertToUI(worldPoint);
+    return _director->convertToUI(worldPoint);
 }
 
 // convenience methods which take a Touch instead of Vec2
@@ -1985,6 +2048,14 @@ void Node::setPhysicsBody(PhysicsBody* body)
         _physicsBody->_node = nullptr;
         _physicsBody->release();
         _physicsBody = nullptr;
+
+        _physicsBodyAssociatedWith--;
+        auto parentNode = this;
+        while (parentNode->_parent)
+        {
+            parentNode = parentNode->_parent;
+            parentNode->_physicsBodyAssociatedWith--;
+        }
     }
 
     if (body)
@@ -2008,8 +2079,17 @@ void Node::setPhysicsBody(PhysicsBody* body)
         _physicsBody = body;
         _physicsScaleStartX = _scaleX;
         _physicsScaleStartY = _scaleY;
+        _physicsRotationOffset = _rotationZ_X;
 
-        auto scene = getScene();
+        _physicsBodyAssociatedWith++;
+        auto parentNode = this;
+        while (parentNode->_parent)
+        {
+            parentNode = parentNode->_parent;
+            parentNode->_physicsBodyAssociatedWith++;
+        }
+
+        auto scene = dynamic_cast<Scene*>(parentNode);
         if (scene && scene->getPhysicsWorld())
         {
             _physicsTransformDirty = true;
@@ -2018,7 +2098,7 @@ void Node::setPhysicsBody(PhysicsBody* body)
     }
 }
 
-void Node::updatePhysicsBodyTransform(Scene* scene, const Mat4& parentTransform, uint32_t parentFlags, float parentScaleX, float parentScaleY)
+void Node::updatePhysicsBodyTransform(const Mat4& parentTransform, uint32_t parentFlags, float parentScaleX, float parentScaleY)
 {
     _updateTransformFromPhysics = false;
     auto flags = processParentFlags(parentTransform, parentFlags);
@@ -2038,12 +2118,12 @@ void Node::updatePhysicsBodyTransform(Scene* scene, const Mat4& parentTransform,
         parentTransform.transformPoint(vec3, &ret);
         _physicsBody->setPosition(Vec2(ret.x, ret.y));
         _physicsBody->setScale(scaleX / _physicsScaleStartX, scaleY / _physicsScaleStartY);
-        _physicsBody->setRotation(_physicsRotation);
+        _physicsBody->setRotation(_physicsRotation - _physicsRotationOffset);
     }
 
     for (auto node : _children)
     {
-        node->updatePhysicsBodyTransform(scene, _modelViewTransform, flags, scaleX, scaleY);
+        node->updatePhysicsBodyTransform(_modelViewTransform, flags, scaleX, scaleY);
     }
 }
 
@@ -2051,6 +2131,7 @@ void Node::updateTransformFromPhysics(const Mat4& parentTransform, uint32_t pare
 {
     auto& newPosition = _physicsBody->getPosition();
     auto& recordedPosition = _physicsBody->_recordedPosition;
+    auto updateBodyTransform = _physicsWorld->_updateBodyTransform;
     if (parentFlags || recordedPosition.x != newPosition.x || recordedPosition.y != newPosition.y)
     {
         recordedPosition = newPosition;
@@ -2060,7 +2141,8 @@ void Node::updateTransformFromPhysics(const Mat4& parentTransform, uint32_t pare
         setPosition(ret.x, ret.y);
     }
     _physicsRotation = _physicsBody->getRotation();
-    setRotation(_physicsRotation - _parent->_physicsRotation);
+    setRotation(_physicsRotation - _parent->_physicsRotation + _physicsRotationOffset);
+    _physicsWorld->_updateBodyTransform = updateBodyTransform;
 }
 
 #endif //CC_USE_PHYSICS

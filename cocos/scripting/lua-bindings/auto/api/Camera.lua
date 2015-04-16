@@ -38,22 +38,28 @@
 -- @return int#int ret (return value: int)
         
 --------------------------------
--- Enable frustum culling
--- @function [parent=#Camera] enableFrustumCulling 
+-- 
+-- @function [parent=#Camera] project 
 -- @param self
--- @param #bool enalbe
--- @param #bool clipZ
+-- @param #vec3_table src
+-- @return vec2_table#vec2_table ret (return value: vec2_table)
         
 --------------------------------
--- Creates a view matrix based on the specified input parameters.<br>
--- param eyePosition The eye position.<br>
--- param targetPosition The target's center position.<br>
--- param up The up vector.<br>
--- param dst A matrix to store the result in.
+-- Get object depth towards camera
+-- @function [parent=#Camera] getDepthInView 
+-- @param self
+-- @param #mat4_table transform
+-- @return float#float ret (return value: float)
+        
+--------------------------------
+-- Make Camera looks at target<br>
+-- param target The target camera is point at<br>
+-- param up The up vector, usually it's Y axis
 -- @function [parent=#Camera] lookAt 
 -- @param self
 -- @param #vec3_table target
 -- @param #vec3_table up
+-- @return Camera#Camera self (return value: cc.Camera)
         
 --------------------------------
 -- Is this aabb visible in frustum
@@ -67,9 +73,23 @@
 -- @function [parent=#Camera] setCameraFlag 
 -- @param self
 -- @param #int flag
+-- @return Camera#Camera self (return value: cc.Camera)
         
 --------------------------------
---  create default camera, the camera type depends on Director::getProjection 
+-- get depth, camera with larger depth is drawn on top of camera with smaller depth, the depth of camera with CameraFlag::DEFAULT is 0, user defined camera is -1 by default
+-- @function [parent=#Camera] getDepth 
+-- @param self
+-- @return int#int ret (return value: int)
+        
+--------------------------------
+-- set depth, camera with larger depth is drawn on top of camera with smaller depth, the depth of camera with CameraFlag::DEFAULT is 0, user defined camera is -1 by default
+-- @function [parent=#Camera] setDepth 
+-- @param self
+-- @param #int depth
+-- @return Camera#Camera self (return value: cc.Camera)
+        
+--------------------------------
+--  create default camera, the camera type depends on Director::getProjection, the depth of the default camera is 0 
 -- @function [parent=#Camera] create 
 -- @param self
 -- @return Camera#Camera ret (return value: cc.Camera)
@@ -92,7 +112,6 @@
 -- Creates an orthographic camera.<br>
 -- param zoomX The zoom factor along the X-axis of the orthographic projection (the width of the ortho projection).<br>
 -- param zoomY The zoom factor along the Y-axis of the orthographic projection (the height of the ortho projection).<br>
--- param aspectRatio The aspect ratio of the orthographic projection.<br>
 -- param nearPlane The near plane distance.<br>
 -- param farPlane The far plane distance.
 -- @function [parent=#Camera] createOrthographic 
@@ -104,15 +123,15 @@
 -- @return Camera#Camera ret (return value: cc.Camera)
         
 --------------------------------
--- 
--- @function [parent=#Camera] getVisitingCamera 
+-- Get the default camera of the current running scene.
+-- @function [parent=#Camera] getDefaultCamera 
 -- @param self
 -- @return Camera#Camera ret (return value: cc.Camera)
         
 --------------------------------
--- Sets the position (X, Y, and Z) in its parent's coordinate system
--- @function [parent=#Camera] setPosition3D 
+-- Get the visiting camera , the visiting camera shall be set on Scene::render
+-- @function [parent=#Camera] getVisitingCamera 
 -- @param self
--- @param #vec3_table position
+-- @return Camera#Camera ret (return value: cc.Camera)
         
 return nil

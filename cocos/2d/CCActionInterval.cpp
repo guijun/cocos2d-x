@@ -1171,6 +1171,12 @@ void MoveTo::startWithTarget(Node *target)
     _positionDelta = _endPosition - target->getPosition3D();
 }
 
+MoveTo* MoveTo::reverse() const
+{
+    CCASSERT(false, "reverse() not supported in MoveTo");
+    return nullptr;
+}
+
 
 //
 // SkewTo
@@ -2016,6 +2022,11 @@ TintTo* TintTo::create(float duration, GLubyte red, GLubyte green, GLubyte blue)
     tintTo->autorelease();
 
     return tintTo;
+}
+
+TintTo* TintTo::create(float duration, const Color3B& color)
+{
+    return create(duration, color.r, color.g, color.b);
 }
 
 bool TintTo::initWithDuration(float duration, GLubyte red, GLubyte green, GLubyte blue)

@@ -2077,7 +2077,8 @@ int tolua_cocos2d_Node_setContentSize(lua_State* tolua_S)
             return 0;
         
         cobj->setContentSize(size);
-        return 0;
+        lua_settop(tolua_S, 1);
+        return 1;
     }
     else if(2 == argc)
     {
@@ -2094,7 +2095,8 @@ int tolua_cocos2d_Node_setContentSize(lua_State* tolua_S)
             return 0;
         
         cobj->setContentSize(Size(width, height));
-        return 0;
+        lua_settop(tolua_S, 1);
+        return 1;
     }
     
     luaL_error(tolua_S, "%s has wrong number of arguments: %d, was expecting %d \n", "cc.Node:setContentSize",argc, 1);
@@ -2135,7 +2137,8 @@ int tolua_cocos2d_Node_setAnchorPoint(lua_State* tolua_S)
             return 0;
         
         cobj->setAnchorPoint(pt);
-        return 0;
+        lua_settop(tolua_S, 1);
+        return 1;
     }
     else if(2 == argc)
     {
@@ -2152,7 +2155,8 @@ int tolua_cocos2d_Node_setAnchorPoint(lua_State* tolua_S)
             return 0;
         
         cobj->setAnchorPoint(cocos2d::Vec2(x,y));
-        return 0;
+        lua_settop(tolua_S, 1);
+        return 1;
     }
     
     luaL_error(tolua_S, "%s has wrong number of arguments: %d, was expecting %d \n", "cc.Node:setAnchorPoint",argc, 1);
@@ -2261,7 +2265,8 @@ static int lua_cocos2dx_Node_enumerateChildren(lua_State* tolua_S)
             return ret;
         });
         
-        return 0;
+        lua_settop(tolua_S, 1);
+        return 1;
     }
     luaL_error(tolua_S, "%s has wrong number of arguments: %d, was expecting %d \n", "enumerateChildren",argc, 2);
     return 0;
@@ -2302,7 +2307,8 @@ int lua_cocos2dx_Node_setAdditionalTransform(lua_State* tolua_S)
             
             if (!ok) { break; }
             cobj->setAdditionalTransform(arg0);
-            return 0;
+            lua_settop(tolua_S, 1);
+            return 1;
         }
     }while(0);
     ok  = true;
@@ -2313,7 +2319,8 @@ int lua_cocos2dx_Node_setAdditionalTransform(lua_State* tolua_S)
             
             if (!ok) { break; }
             cobj->setAdditionalTransform(&arg0);
-            return 0;
+            lua_settop(tolua_S, 1);
+            return 1;
         }
     }while(0);
     ok  = true;
@@ -2356,7 +2363,8 @@ int lua_cocos2dx_Node_setRotationQuat(lua_State* tolua_S)
             
             if (!ok) { break; }
             cobj->setRotationQuat(arg0);
-            return 0;
+            lua_settop(tolua_S, 1);
+            return 1;
         }
     }while(0);
     
@@ -2410,7 +2418,8 @@ int lua_cocos2dx_Node_setPhysicsBody(lua_State* tolua_S)
             return 0;
         }
         cobj->setPhysicsBody(arg0);
-        return 0;
+        lua_settop(tolua_S, 1);
+        return 1;
     }
     luaL_error(tolua_S, "%s has wrong number of arguments: %d, was expecting %d \n", "cc.Node:setPhysicsBody",argc, 1);
     return 0;
@@ -2457,7 +2466,8 @@ int lua_cocos2dx_Node_removeFromPhysicsWorld(lua_State* tolua_S)
             return 0;
         }
         cobj->removeFromPhysicsWorld();
-        return 0;
+        lua_settop(tolua_S, 1);
+        return 1;
     }
     luaL_error(tolua_S, "%s has wrong number of arguments: %d, was expecting %d \n", "cc.Node:removeFromPhysicsWorld",argc, 0);
     return 0;
@@ -3377,6 +3387,8 @@ static int tolua_cocos2dx_setBlendFunc(lua_State* tolua_S,const char* className)
     argc = lua_gettop(tolua_S) - 1;
     if (2 == argc)
     {
+        CCLOG("setBlendFunc of %s will deprecate two int parameter form,please pass a table like {src = xx, dst = xx} as a parameter", className);
+        
         GLenum src, dst;
         if (!luaval_to_int32(tolua_S, 2, (int32_t*)&src, StringUtils::format("%s%s",className, ":setBlendFunc").c_str()))
             return 0;
@@ -3399,45 +3411,108 @@ tolua_lerror:
     return 0;
 #endif
 }
+extern int lua_cocos2dx_Sprite_setBlendFunc(lua_State* tolua_S);
 
-static int tolua_cocos2dx_Sprite_setBlendFunc(lua_State* tolua_S)
+CC_DEPRECATED_ATTRIBUTE static int tolua_cocos2dx_Sprite_setBlendFunc01(lua_State* tolua_S)
 {
-    return tolua_cocos2dx_setBlendFunc<Sprite>(tolua_S,"cc.Sprite");
+    int argc = lua_gettop(tolua_S) - 1;
+    if (argc == 2)
+    {
+        return tolua_cocos2dx_setBlendFunc<Sprite>(tolua_S,"cc.Sprite");
+    }
+
+    return lua_cocos2dx_Sprite_setBlendFunc(tolua_S);
 }
 
-static int tolua_cocos2dx_SpriteBatchNode_setBlendFunc(lua_State* tolua_S)
+extern int lua_cocos2dx_SpriteBatchNode_setBlendFunc(lua_State* tolua_S);
+
+CC_DEPRECATED_ATTRIBUTE static int tolua_cocos2dx_SpriteBatchNode_setBlendFunc01(lua_State* tolua_S)
 {
-    return tolua_cocos2dx_setBlendFunc<SpriteBatchNode>(tolua_S,"cc.SpriteBatchNode");
+    int argc = lua_gettop(tolua_S) - 1;
+    if (argc == 2)
+    {
+        return tolua_cocos2dx_setBlendFunc<SpriteBatchNode>(tolua_S,"cc.SpriteBatchNode");
+    }
+    
+    return lua_cocos2dx_SpriteBatchNode_setBlendFunc(tolua_S);
 }
 
-static int tolua_cocos2dx_MotionStreak_setBlendFunc(lua_State* tolua_S)
+extern int lua_cocos2dx_MotionStreak_setBlendFunc(lua_State* tolua_S);
+
+CC_DEPRECATED_ATTRIBUTE static int tolua_cocos2dx_MotionStreak_setBlendFunc01(lua_State* tolua_S)
 {
-    return tolua_cocos2dx_setBlendFunc<MotionStreak>(tolua_S,"cc.MotionStreak");
+    int argc = lua_gettop(tolua_S) - 1;
+    if (argc == 2)
+    {
+        return tolua_cocos2dx_setBlendFunc<MotionStreak>(tolua_S,"cc.MotionStreak");
+    }
+    
+    return lua_cocos2dx_MotionStreak_setBlendFunc(tolua_S);
 }
 
-static int tolua_cocos2dx_AtlasNode_setBlendFunc(lua_State* tolua_S)
+extern int lua_cocos2dx_AtlasNode_setBlendFunc(lua_State* tolua_S);
+
+CC_DEPRECATED_ATTRIBUTE static int tolua_cocos2dx_AtlasNode_setBlendFunc01(lua_State* tolua_S)
 {
-    return tolua_cocos2dx_setBlendFunc<AtlasNode>(tolua_S,"cc.AtlasNode");
+    int argc = lua_gettop(tolua_S) - 1;
+    if (argc == 2)
+    {
+        return tolua_cocos2dx_setBlendFunc<AtlasNode>(tolua_S,"cc.AtlasNode");
+    }
+    
+    return lua_cocos2dx_AtlasNode_setBlendFunc(tolua_S);
 }
 
-static int tolua_cocos2dx_ParticleBatchNode_setBlendFunc(lua_State* tolua_S)
+extern int lua_cocos2dx_ParticleBatchNode_setBlendFunc(lua_State* tolua_S);
+
+CC_DEPRECATED_ATTRIBUTE static int tolua_cocos2dx_ParticleBatchNode_setBlendFunc01(lua_State* tolua_S)
 {
-    return tolua_cocos2dx_setBlendFunc<ParticleBatchNode>(tolua_S,"cc.ParticleBatchNode");
+    int argc = lua_gettop(tolua_S) - 1;
+    if (argc == 2)
+    {
+        return tolua_cocos2dx_setBlendFunc<ParticleBatchNode>(tolua_S,"cc.ParticleBatchNode");
+    }
+    
+    return lua_cocos2dx_ParticleBatchNode_setBlendFunc(tolua_S);
 }
 
-static int tolua_cocos2dx_LayerColor_setBlendFunc(lua_State* tolua_S)
+extern int lua_cocos2dx_LayerColor_setBlendFunc(lua_State* tolua_S);
+
+CC_DEPRECATED_ATTRIBUTE static int tolua_cocos2dx_LayerColor_setBlendFunc01(lua_State* tolua_S)
 {
-    return tolua_cocos2dx_setBlendFunc<LayerColor>(tolua_S,"cc.LayerColor");
+    int argc = lua_gettop(tolua_S) - 1;
+    if (argc == 2)
+    {
+        return tolua_cocos2dx_setBlendFunc<LayerColor>(tolua_S,"cc.LayerColor");
+    }
+    
+    return lua_cocos2dx_LayerColor_setBlendFunc(tolua_S);
 }
 
-static int tolua_cocos2dx_ParticleSystem_setBlendFunc(lua_State* tolua_S) 
+extern int lua_cocos2dx_ParticleSystem_setBlendFunc(lua_State* tolua_S);
+
+CC_DEPRECATED_ATTRIBUTE static int tolua_cocos2dx_ParticleSystem_setBlendFunc01(lua_State* tolua_S)
 {
-    return tolua_cocos2dx_setBlendFunc<ParticleSystem>(tolua_S,"cc.ParticleSystem");
+    int argc = lua_gettop(tolua_S) - 1;
+    if (argc == 2)
+    {
+        return tolua_cocos2dx_setBlendFunc<ParticleSystem>(tolua_S,"cc.ParticleSystem");
+    }
+    
+    return lua_cocos2dx_ParticleSystem_setBlendFunc(tolua_S);
 }
 
-static int tolua_cocos2dx_DrawNode_setBlendFunc(lua_State* tolua_S) 
+extern int lua_cocos2dx_DrawNode_setBlendFunc(lua_State* tolua_S);
+
+CC_DEPRECATED_ATTRIBUTE static int tolua_cocos2dx_DrawNode_setBlendFunc01(lua_State* tolua_S)
 {
-    return tolua_cocos2dx_setBlendFunc<DrawNode>(tolua_S,"cc.DrawNode");
+    int argc = lua_gettop(tolua_S) - 1;
+    if (argc == 2)
+    {
+        return tolua_cocos2dx_setBlendFunc<DrawNode>(tolua_S,"cc.DrawNode");
+    }
+    
+    return lua_cocos2dx_DrawNode_setBlendFunc(tolua_S);
 }
 
 static int tolua_cocos2dx_LayerMultiplex_create(lua_State* tolua_S)
@@ -3737,7 +3812,7 @@ static int tolua_cocos2dx_GLProgram_setUniformLocationF32(lua_State* tolua_S)
 #endif
             
             f4 = (float)  tolua_tonumber(tolua_S,6,0);
-            if (4 == argc)
+            if (5 == argc)
             {
                 self->setUniformLocationWith4f(location, f1, f2, f3, f4);
                 return 0;
@@ -3872,7 +3947,8 @@ int lua_cocos2dx_GLProgram_setUniformLocationWithMatrix2fv(lua_State* tolua_S)
         
         cobj->setUniformLocationWithMatrix2fv(arg0, arg1, arg2);
         CC_SAFE_DELETE_ARRAY(arg1);
-        return 0;
+        lua_settop(tolua_S, 1);
+        return 1;
     }
     luaL_error(tolua_S, "%s has wrong number of arguments: %d, was expecting %d \n", "cc.GLProgram:setUniformLocationWithMatrix2fv",argc, 3);
     return 0;
@@ -3946,7 +4022,8 @@ int lua_cocos2dx_GLProgram_setUniformLocationWithMatrix3fv(lua_State* tolua_S)
         cobj->setUniformLocationWithMatrix3fv(arg0, arg1, arg2);
         CC_SAFE_DELETE_ARRAY(arg1);
         
-        return 0;
+        lua_settop(tolua_S, 1);
+        return 1;
     }
     luaL_error(tolua_S, "%s has wrong number of arguments: %d, was expecting %d \n", "cc.GLProgram:setUniformLocationWithMatrix3fv",argc, 3);
     return 0;
@@ -4020,7 +4097,8 @@ int lua_cocos2dx_GLProgram_setUniformLocationWithMatrix4fv(lua_State* tolua_S)
         cobj->setUniformLocationWithMatrix4fv(arg0, arg1, arg2);
         
         CC_SAFE_DELETE_ARRAY(arg1);
-        return 0;
+        lua_settop(tolua_S, 1);
+        return 1;
     }
     luaL_error(tolua_S, "%s has wrong number of arguments: %d, was expecting %d \n", "cc.GLProgram:setUniformLocationWithMatrix4fv",argc, 3);
     return 0;
@@ -4092,7 +4170,8 @@ int lua_cocos2dx_GLProgram_setUniformLocationWith3iv(lua_State* tolua_S)
         cobj->setUniformLocationWith3iv(arg0, arg1, arg2);
         
         CC_SAFE_DELETE_ARRAY(arg1);
-        return 0;
+        lua_settop(tolua_S, 1);
+        return 1;
     }
     luaL_error(tolua_S, "%s has wrong number of arguments: %d, was expecting %d \n", "cc.GLProgram:setUniformLocationWith3iv",argc, 3);
     return 0;
@@ -4164,7 +4243,8 @@ int lua_cocos2dx_GLProgram_setUniformLocationWith4iv(lua_State* tolua_S)
         }
         cobj->setUniformLocationWith4iv(arg0, arg1, arg2);
         CC_SAFE_DELETE_ARRAY(arg1);
-        return 0;
+        lua_settop(tolua_S, 1);
+        return 1;
     }
     luaL_error(tolua_S, "%s has wrong number of arguments: %d, was expecting %d \n", "cc.GLProgram:setUniformLocationWith4iv",argc, 3);
     return 0;
@@ -4233,7 +4313,8 @@ int lua_cocos2dx_GLProgram_setUniformLocationWith2iv(lua_State* tolua_S)
         cobj->setUniformLocationWith2iv(arg0, arg1, arg2);
         
         CC_SAFE_DELETE_ARRAY(arg1);
-        return 0;
+        lua_settop(tolua_S, 1);
+        return 1;
     }
     luaL_error(tolua_S, "%s has wrong number of arguments: %d, was expecting %d \n", "cc.GLProgram:setUniformLocationWith2iv",argc, 3);
     return 0;
@@ -4910,7 +4991,7 @@ static void extendDrawNode(lua_State* tolua_S)
         lua_rawset(tolua_S,-3);
 
         lua_pushstring(tolua_S,"setBlendFunc");
-        lua_pushcfunction(tolua_S,tolua_cocos2dx_DrawNode_setBlendFunc);
+        lua_pushcfunction(tolua_S,tolua_cocos2dx_DrawNode_setBlendFunc01);
         lua_rawset(tolua_S,-3);
     }
     lua_pop(tolua_S, 1);
@@ -4923,7 +5004,7 @@ static void extendSprite(lua_State* tolua_S)
     if (lua_istable(tolua_S,-1))
     {
         lua_pushstring(tolua_S,"setBlendFunc");
-        lua_pushcfunction(tolua_S,tolua_cocos2dx_Sprite_setBlendFunc);
+        lua_pushcfunction(tolua_S,tolua_cocos2dx_Sprite_setBlendFunc01);
         lua_rawset(tolua_S,-3);
     }
     lua_pop(tolua_S, 1);
@@ -4936,7 +5017,7 @@ static void extendLayerColor(lua_State* tolua_S)
     if (lua_istable(tolua_S,-1))
     {
         lua_pushstring(tolua_S,"setBlendFunc");
-        lua_pushcfunction(tolua_S,tolua_cocos2dx_LayerColor_setBlendFunc);
+        lua_pushcfunction(tolua_S,tolua_cocos2dx_LayerColor_setBlendFunc01);
         lua_rawset(tolua_S,-3);
     }
     lua_pop(tolua_S, 1);
@@ -4962,7 +5043,7 @@ static void extendParticleSystem(lua_State* tolua_S)
     if (lua_istable(tolua_S,-1))
     {
         lua_pushstring(tolua_S,"setBlendFunc");
-        lua_pushcfunction(tolua_S,tolua_cocos2dx_ParticleSystem_setBlendFunc);
+        lua_pushcfunction(tolua_S,tolua_cocos2dx_ParticleSystem_setBlendFunc01);
         lua_rawset(tolua_S,-3);
     }
     lua_pop(tolua_S, 1);
@@ -5005,7 +5086,7 @@ static void extendSpriteBatchNode(lua_State* tolua_S)
         lua_rawset(tolua_S,-3);
 
         lua_pushstring(tolua_S,"setBlendFunc");
-        lua_pushcfunction(tolua_S,tolua_cocos2dx_SpriteBatchNode_setBlendFunc);
+        lua_pushcfunction(tolua_S,tolua_cocos2dx_SpriteBatchNode_setBlendFunc01);
         lua_rawset(tolua_S,-3);
     }
     lua_pop(tolua_S, 1);
@@ -5018,7 +5099,7 @@ static void extendMotionStreak(lua_State* tolua_S)
     if (lua_istable(tolua_S,-1))
     {
         lua_pushstring(tolua_S,"setBlendFunc");
-        lua_pushcfunction(tolua_S,tolua_cocos2dx_MotionStreak_setBlendFunc);
+        lua_pushcfunction(tolua_S,tolua_cocos2dx_MotionStreak_setBlendFunc01);
         lua_rawset(tolua_S,-3);
     }
     lua_pop(tolua_S, 1);
@@ -5031,7 +5112,7 @@ static void extendAtlasNode(lua_State* tolua_S)
     if (lua_istable(tolua_S,-1))
     {
         lua_pushstring(tolua_S,"setBlendFunc");
-        lua_pushcfunction(tolua_S,tolua_cocos2dx_AtlasNode_setBlendFunc);
+        lua_pushcfunction(tolua_S,tolua_cocos2dx_AtlasNode_setBlendFunc01);
         lua_rawset(tolua_S,-3);
     }
     lua_pop(tolua_S, 1);
@@ -5044,7 +5125,7 @@ static void extendParticleBatchNode(lua_State* tolua_S)
     if (lua_istable(tolua_S,-1))
     {
         lua_pushstring(tolua_S,"setBlendFunc");
-        lua_pushcfunction(tolua_S,tolua_cocos2dx_ParticleBatchNode_setBlendFunc);
+        lua_pushcfunction(tolua_S,tolua_cocos2dx_ParticleBatchNode_setBlendFunc01);
         lua_rawset(tolua_S,-3);
     }
     lua_pop(tolua_S, 1);
@@ -6578,7 +6659,8 @@ static int lua_cocos2dx_Console_addCommand(lua_State* tolua_S)
             };
             cobj->addCommand(outValue);
         }
-        return 0;
+        lua_settop(tolua_S, 1);
+        return 1;
     }
     luaL_error(tolua_S, "%s has wrong number of arguments: %d, was expecting %d", "cc.Console:addCommand",argc, 2);
     return 0;
@@ -6636,7 +6718,7 @@ static int lua_cocos2dx_GLProgramState_setVertexAttribPointer(lua_State* tolua_S
         unsigned int arg2;
         bool arg3;
         int arg4;
-        int arg5;
+        long arg5;
         
         ok &= luaval_to_std_string(tolua_S, 2,&arg0, "cc.GLProgramState:setVertexAttribPointer");
         
@@ -6648,12 +6730,13 @@ static int lua_cocos2dx_GLProgramState_setVertexAttribPointer(lua_State* tolua_S
         
         ok &= luaval_to_int32(tolua_S, 6,(int *)&arg4, "cc.GLProgramState:setVertexAttribPointer");
         
-        ok &= luaval_to_int32(tolua_S, 7, (int *)&arg5, "cc.GLProgramState:setVertexAttribPointer");
+        ok &= luaval_to_long(tolua_S, 7, (long *)&arg5, "cc.GLProgramState:setVertexAttribPointer");
         
         if(!ok)
             return 0;
-        cobj->setVertexAttribPointer(arg0, arg1, arg2, arg3, arg4, (void*)&arg5);
-        return 0;
+        cobj->setVertexAttribPointer(arg0, arg1, arg2, arg3, arg4, (void*)arg5);
+        lua_settop(tolua_S, 1);
+        return 1;
     }
     else if (argc == 7)
     {
@@ -6713,7 +6796,8 @@ static int lua_cocos2dx_GLProgramState_setVertexAttribPointer(lua_State* tolua_S
         
         CC_SAFE_DELETE(arg5);
         
-        return 0;
+        lua_settop(tolua_S, 1);
+        return 1;
     }
     luaL_error(tolua_S, "%s has wrong number of arguments: %d, was expecting %d \n", "cc.GLProgramState:setVertexAttribPointer",argc, 6);
     return 0;
@@ -6927,7 +7011,8 @@ int lua_cocos2dx_TMXLayer_setTiles(lua_State* tolua_S)
         cobj->setTiles(arg0);
         
         CC_SAFE_DELETE_ARRAY(arg0);
-        return 0;
+        lua_settop(tolua_S, 1);
+        return 1;
     }
     luaL_error(tolua_S, "%s has wrong number of arguments: %d, was expecting %d \n", "cc.TMXLayer:setTiles",argc, 1);
     return 0;
@@ -7003,6 +7088,56 @@ tolua_lerror:
     return 0;
 }
 
+int lua_cocos2dx_Application_is64BitIOSDevice(lua_State* tolua_S)
+{
+    int argc = 0;
+    cocos2d::Application* cobj = nullptr;
+    
+#if COCOS2D_DEBUG >= 1
+    tolua_Error tolua_err;
+#endif
+    
+    
+#if COCOS2D_DEBUG >= 1
+    if (!tolua_isusertype(tolua_S,1,"cc.Application",0,&tolua_err)) goto tolua_lerror;
+#endif
+    
+    cobj = (cocos2d::Application*)tolua_tousertype(tolua_S,1,0);
+    
+#if COCOS2D_DEBUG >= 1
+    if (!cobj)
+    {
+        tolua_error(tolua_S,"invalid 'cobj' in function 'lua_cocos2dx_Application_is64BitIOSDevice'", nullptr);
+        return 0;
+    }
+#endif
+    
+    argc = lua_gettop(tolua_S)-1;
+    if (argc == 0)
+    {
+        bool is64BitIOSDevice = false;
+        Application::Platform platform = cocos2d::Application::getInstance()->getTargetPlatform();
+        if (Application::Platform::OS_IPHONE == platform || Application::Platform::OS_IPAD == platform)
+        {
+#if defined(__arm64__)
+            is64BitIOSDevice = true;
+#endif
+        }
+        
+        tolua_pushboolean(tolua_S, is64BitIOSDevice);
+        return 1;
+    }
+    luaL_error(tolua_S, "%s has wrong number of arguments: %d, was expecting %d \n", "cc.Application:is64BitIOSDevice",argc, 0);
+    return 0;
+    
+#if COCOS2D_DEBUG >= 1
+tolua_lerror:
+    tolua_error(tolua_S,"#ferror in function 'lua_cocos2dx_Application_is64BitIOSDevice'.",&tolua_err);
+#endif
+    
+    return 0;
+}
+
 static void extendApplication(lua_State* tolua_S)
 {
     lua_pushstring(tolua_S, "cc.Application");
@@ -7010,6 +7145,7 @@ static void extendApplication(lua_State* tolua_S)
     if (lua_istable(tolua_S,-1))
     {
         tolua_function(tolua_S, "isIOS64bit", lua_cocos2dx_Application_isIOS64bit);
+        tolua_function(tolua_S, "is64BitIOSDevice", lua_cocos2dx_Application_is64BitIOSDevice);
     }
     lua_pop(tolua_S, 1);
 }
@@ -7181,6 +7317,20 @@ int lua_cocos2dx_Camera_unproject(lua_State* tolua_S)
 #endif
     
     argc = lua_gettop(tolua_S)-1;
+    if (argc == 1)
+    {
+        cocos2d::Vec3 arg0;
+        
+        ok &= luaval_to_vec3(tolua_S, 2, &arg0, "cc.Camera:project");
+        if(!ok)
+        {
+            tolua_error(tolua_S,"invalid arguments in function 'lua_cocos2dx_Camera_project'", nullptr);
+            return 0;
+        }
+        auto ret = cobj->unproject(arg0);
+        vec3_to_luaval(tolua_S, ret);
+        return 1;
+    }
     if (argc == 3)
     {
         cocos2d::Size arg0;
@@ -7442,7 +7592,7 @@ static int tolua_cocos2d_Mat4_transformVector(lua_State* tolua_S)
             !tolua_isnumber(tolua_S, 3, 0, &tolua_err) ||
             !tolua_isnumber(tolua_S, 4, 0, &tolua_err) ||
             !tolua_isnumber(tolua_S, 5, 0, &tolua_err) ||
-            !tolua_isnumber(tolua_S, 6, 0, &tolua_err))
+            !tolua_istable(tolua_S, 6, 0, &tolua_err) )
             goto tolua_lerror;
         else
 #endif
@@ -7481,10 +7631,11 @@ static int tolua_cocos2d_Mat4_decompose(lua_State* tolua_S)
 {
 #if COCOS2D_DEBUG >= 1
     tolua_Error tolua_err;
+    
     if (!tolua_istable(tolua_S, 1, 0, &tolua_err) ||
-        !tolua_istable(tolua_S, 2, 0, &tolua_err) ||
-        !tolua_istable(tolua_S, 3, 0, &tolua_err) ||
-        !tolua_istable(tolua_S, 4, 0, &tolua_err))
+        (!lua_isnil(tolua_S, 2) && !tolua_istable(tolua_S, 2, 0, &tolua_err)) ||
+        (!lua_isnil(tolua_S, 3) && !tolua_istable(tolua_S, 3, 0, &tolua_err)) ||
+        (!lua_isnil(tolua_S, 4) && !tolua_istable(tolua_S, 4, 0, &tolua_err)) )
         goto tolua_lerror;
     else
 #endif
@@ -7494,27 +7645,210 @@ static int tolua_cocos2d_Mat4_decompose(lua_State* tolua_S)
         cocos2d::Quaternion rotation;
         cocos2d::Vec3 translation;
         bool ok = true;
+        
         ok &= luaval_to_mat4(tolua_S, 1, &mat);
         if (!ok)
             return 0;
         
-        ok &= luaval_to_vec3(tolua_S, 2, &scale);
-        if (!ok)
-            return 0;
+        if (lua_isnil(tolua_S, 2) && !lua_isnil(tolua_S, 3) && !lua_isnil(tolua_S, 4))
+        {
+            ok &= luaval_to_quaternion(tolua_S, 3, &rotation);
+            if (!ok)
+                return 0;
+            
 
-        ok &= luaval_to_quaternion(tolua_S, 3, &rotation);
-        if (!ok)
-            return 0;
+            ok &= luaval_to_vec3(tolua_S, 4, &translation);
+            if (!ok)
+                return 0;
+            
+            
+            mat.decompose(nullptr, &rotation, &translation);
+            
+            lua_newtable(tolua_S);
+            
+            lua_pushstring(tolua_S, "scale");
+            lua_pushnil(tolua_S);
+            lua_rawset(tolua_S, -3);
+            
+            lua_pushstring(tolua_S, "rotation");
+            quaternion_to_luaval(tolua_S, rotation);
+            lua_rawset(tolua_S, -3);
+            
+            lua_pushstring(tolua_S, "translation");
+            vec3_to_luaval(tolua_S, translation);
+            lua_rawset(tolua_S, -3);
+
+            return 1;
+        }
         
-        ok &= luaval_to_vec3(tolua_S, 2, &translation);
-        if (!ok)
-            return 0;
+        if (lua_isnil(tolua_S, 2) && lua_isnil(tolua_S, 3) && !lua_isnil(tolua_S, 4))
+        {
+            ok &= luaval_to_vec3(tolua_S, 4, &translation);
+            if (!ok)
+                return 0;
+            
+            
+            mat.decompose(nullptr, nullptr, &translation);
+            
+            lua_newtable(tolua_S);
+            
+            lua_pushstring(tolua_S, "scale");
+            lua_pushnil(tolua_S);
+            lua_rawset(tolua_S, -3);
+            
+            lua_pushstring(tolua_S, "rotation");
+            lua_pushnil(tolua_S);
+            lua_rawset(tolua_S, -3);
+            
+            lua_pushstring(tolua_S, "translation");
+            vec3_to_luaval(tolua_S, translation);
+            lua_rawset(tolua_S, -3);
+            
+            return 1;
+        }
         
-        mat.decompose(&scale, &rotation, &translation);
-        vec3_to_luaval(tolua_S, scale);
-        quaternion_to_luaval(tolua_S, rotation);
-        vec3_to_luaval(tolua_S, translation);
-        return 3;
+        if (!lua_isnil(tolua_S, 2) && lua_isnil(tolua_S, 3) && !lua_isnil(tolua_S, 4))
+        {
+            ok &= luaval_to_vec3(tolua_S, 2, &scale);
+            if (!ok)
+                return 0;
+        
+            ok &= luaval_to_vec3(tolua_S, 4, &translation);
+            if (!ok)
+                return 0;
+            
+            mat.decompose(&scale, nullptr, &translation);
+            
+            lua_newtable(tolua_S);
+            
+            lua_pushstring(tolua_S, "scale");
+            vec3_to_luaval(tolua_S, scale);
+            lua_rawset(tolua_S, -3);
+            
+            lua_pushstring(tolua_S, "rotation");
+            lua_pushnil(tolua_S);
+            lua_rawset(tolua_S, -3);
+            
+            lua_pushstring(tolua_S, "translation");
+            vec3_to_luaval(tolua_S, translation);
+            lua_rawset(tolua_S, -3);
+            
+            return 1;
+        }
+        
+        if (!lua_isnil(tolua_S, 2) && lua_isnil(tolua_S, 3) && lua_isnil(tolua_S, 4))
+        {
+            ok &= luaval_to_vec3(tolua_S, 2, &scale);
+            if (!ok)
+                return 0;
+            
+            
+            mat.decompose(&scale, nullptr, nullptr);
+            
+            lua_newtable(tolua_S);
+            
+            lua_pushstring(tolua_S, "scale");
+            vec3_to_luaval(tolua_S, scale);
+            lua_rawset(tolua_S, -3);
+            
+            lua_pushstring(tolua_S, "rotation");
+            lua_pushnil(tolua_S);
+            lua_rawset(tolua_S, -3);
+            
+            lua_pushstring(tolua_S, "translation");
+            lua_pushnil(tolua_S);
+            lua_rawset(tolua_S, -3);
+            
+            return 1;
+        }
+        
+        if (!lua_isnil(tolua_S, 2) && !lua_isnil(tolua_S, 3) && lua_isnil(tolua_S, 4))
+        {
+            ok &= luaval_to_vec3(tolua_S, 2, &scale);
+            if (!ok)
+                return 0;
+            
+            ok &= luaval_to_quaternion(tolua_S, 3, &rotation);
+            if (!ok)
+                return 0;
+            
+            mat.decompose(&scale, &rotation, nullptr);
+            
+            lua_newtable(tolua_S);
+            
+            lua_pushstring(tolua_S, "scale");
+            vec3_to_luaval(tolua_S, scale);
+            lua_rawset(tolua_S, -3);
+            
+            lua_pushstring(tolua_S, "rotation");
+            quaternion_to_luaval(tolua_S, rotation);
+            lua_rawset(tolua_S, -3);
+            
+            lua_pushstring(tolua_S, "translation");
+            lua_pushnil(tolua_S);
+            lua_rawset(tolua_S, -3);
+            
+            return 1;
+            
+        }
+        
+        if (lua_isnil(tolua_S, 2) && !lua_isnil(tolua_S, 3) && lua_isnil(tolua_S, 4))
+        {
+            ok &= luaval_to_quaternion(tolua_S, 3, &rotation);
+            if (!ok)
+                return 0;
+            
+            mat.decompose(nullptr, &rotation, nullptr);
+            
+            lua_newtable(tolua_S);
+            
+            lua_pushstring(tolua_S, "scale");
+            lua_pushnil(tolua_S);
+            lua_rawset(tolua_S, -3);
+            
+            lua_pushstring(tolua_S, "rotation");
+            quaternion_to_luaval(tolua_S, rotation);
+            lua_rawset(tolua_S, -3);
+            
+            lua_pushstring(tolua_S, "translation");
+            lua_pushnil(tolua_S);
+            lua_rawset(tolua_S, -3);
+        }
+        
+        if (!lua_isnil(tolua_S, 2) && !lua_isnil(tolua_S, 3) && !lua_isnil(tolua_S, 4))
+        {
+            ok &= luaval_to_vec3(tolua_S, 2, &scale);
+            if (!ok)
+                return 0;
+            
+            ok &= luaval_to_quaternion(tolua_S, 3, &rotation);
+            if (!ok)
+                return 0;
+            
+            ok &= luaval_to_vec3(tolua_S, 4, &translation);
+            if (!ok)
+                return 0;
+            
+            mat.decompose(&scale, &rotation, &translation);
+            
+            lua_newtable(tolua_S);
+            
+            lua_pushstring(tolua_S, "scale");
+            vec3_to_luaval(tolua_S, scale);
+            lua_rawset(tolua_S, -3);
+            
+            lua_pushstring(tolua_S, "rotation");
+            quaternion_to_luaval(tolua_S, rotation);
+            lua_rawset(tolua_S, -3);
+            
+            lua_pushstring(tolua_S, "translation");
+            vec3_to_luaval(tolua_S, translation);
+            lua_rawset(tolua_S, -3);
+            
+            return 1;
+        }
+        
+        return 0;
     }
     return 0;
 #if COCOS2D_DEBUG >= 1
@@ -7532,7 +7866,7 @@ static int tolua_cocos2d_Vec3_cross(lua_State* tolua_S)
     tolua_Error tolua_err;
 #endif
     
-    if (1 == argc)
+    if (2 == argc)
     {
 #if COCOS2D_DEBUG >= 1
         if (!tolua_istable(tolua_S, 1, 0, &tolua_err) ||
@@ -7602,6 +7936,38 @@ tolua_lerror:
 #endif
 }
 
+static int tolua_cocos2d_Mat4_multiply(lua_State* tolua_S)
+{
+#if COCOS2D_DEBUG >= 1
+    tolua_Error tolua_err;
+    if (!tolua_istable(tolua_S, 1, 0, &tolua_err) ||
+        !tolua_istable(tolua_S, 2, 0, &tolua_err) )
+        goto tolua_lerror;
+    else
+#endif
+    {
+        cocos2d::Mat4 mat1;
+        bool ok = luaval_to_mat4(tolua_S, 1, &mat1);
+        if(!ok)
+            return 0;
+        
+        cocos2d::Mat4 mat2;
+        ok = luaval_to_mat4(tolua_S, 2, &mat2);
+        if(!ok)
+            return 0;
+        
+        cocos2d::Mat4 ret = mat1 * mat2;
+        mat4_to_luaval(tolua_S, ret);
+        return 1;
+    }
+    return 0;
+#if COCOS2D_DEBUG >= 1
+tolua_lerror:
+    tolua_error(tolua_S,"#ferror in function 'mat4_multiply'.",&tolua_err);
+    return 0;
+#endif
+}
+
 int register_all_cocos2dx_math_manual(lua_State* tolua_S)
 {
     if (nullptr == tolua_S)
@@ -7613,6 +7979,7 @@ int register_all_cocos2dx_math_manual(lua_State* tolua_S)
         tolua_function(tolua_S, "mat4_getInversed", tolua_cocos2d_Mat4_getInversed);
         tolua_function(tolua_S, "mat4_transformVector", tolua_cocos2d_Mat4_transformVector);
         tolua_function(tolua_S, "mat4_decompose", tolua_cocos2d_Mat4_decompose);
+        tolua_function(tolua_S, "mat4_multiply", tolua_cocos2d_Mat4_multiply);
         tolua_function(tolua_S, "vec3_cross", tolua_cocos2d_Vec3_cross);
     tolua_endmodule(tolua_S);
     return 0;

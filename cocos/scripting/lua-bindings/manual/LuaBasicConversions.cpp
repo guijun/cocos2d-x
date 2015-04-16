@@ -121,7 +121,22 @@ bool luaval_to_int32(lua_State* L,int lo,int* outValue, const char* funcName)
     
     if (ok)
     {
-        *outValue = (int)tolua_tonumber(L, lo, 0);
+        /**
+         When we want to convert the number value from the Lua to int, we would call lua_tonumber to implement.It would
+         experience two phase conversion: int -> double, double->int.But,for the 0x80000000 which the min value of int, the
+         int cast may return an undefined result,like 0x7fffffff.So we must use the (int)(unsigned int)lua_tonumber() to get
+         predictable results for 0x80000000.In this place,we didn't use lua_tointeger, because it may produce differen results
+         depending on the compiler,e.g:for iPhone4s,it also get wrong value for 0x80000000.
+         */
+        unsigned int estimateValue = (unsigned int)lua_tonumber(L, lo);
+        if (estimateValue == std::numeric_limits<int>::min())
+        {
+            *outValue = (int)estimateValue;
+        }
+        else
+        {
+            *outValue = (int)lua_tonumber(L, lo);
+        }
     }
     
     return ok;
@@ -824,7 +839,7 @@ bool luaval_to_fontdefinition(lua_State* L, int lo, FontDefinition* outValue , c
         
         lua_pushstring(L, "fontName");
         lua_gettable(L,lo);
-        outValue->_fontName = tolua_tocppstring(L,lo,defautlFontName);
+        outValue->_fontName = tolua_tocppstring(L, lua_gettop(L), defautlFontName);
         lua_pop(L,1);
         
         lua_pushstring(L, "fontSize");
@@ -846,7 +861,7 @@ bool luaval_to_fontdefinition(lua_State* L, int lo, FontDefinition* outValue , c
         lua_gettable(L,lo);
         if (!lua_isnil(L,-1))
         {
-            luaval_to_color3b(L, -1, &outValue->_fontFillColor);
+            luaval_to_color3b(L, lua_gettop(L), &outValue->_fontFillColor);
         }
         lua_pop(L,1);
         
@@ -854,7 +869,7 @@ bool luaval_to_fontdefinition(lua_State* L, int lo, FontDefinition* outValue , c
         lua_gettable(L,lo);
         if (!lua_isnil(L,-1))
         {
-            luaval_to_size(L, -1, &outValue->_dimensions);
+            luaval_to_size(L, lua_gettop(L), &outValue->_dimensions);
         }
         lua_pop(L,1);
         
@@ -875,7 +890,7 @@ bool luaval_to_fontdefinition(lua_State* L, int lo, FontDefinition* outValue , c
             lua_gettable(L,lo);
             if (!lua_isnil(L,-1))
             {
-                luaval_to_size(L, -1, &outValue->_shadow._shadowOffset);                
+                luaval_to_size(L, lua_gettop(L), &outValue->_shadow._shadowOffset);
             }
             lua_pop(L,1);
             
@@ -912,7 +927,7 @@ bool luaval_to_fontdefinition(lua_State* L, int lo, FontDefinition* outValue , c
                 lua_gettable(L,lo);
                 if (!lua_isnil(L,-1))
                 {
-                     luaval_to_color3b(L, -1, &outValue->_stroke._strokeColor);
+                     luaval_to_color3b(L, lua_gettop(L), &outValue->_stroke._strokeColor);
                 }
                 lua_pop(L,1);
                 
@@ -1910,7 +1925,7 @@ bool luaval_to_mesh_vertex_attrib(lua_State* L, int lo, cocos2d::MeshVertexAttri
         ret->type  = (GLenum)lua_tonumber(L, -1);
         lua_pop(L,1);
         
-        lua_pushstring(L, "vertexAttrib");          /* L: paramStack key */
+        lua_pushstring(L, "attribSizeBytes");       /* L: paramStack key */
         lua_gettable(L,lo);                         /* L: paramStack paramStack[lo][key] */
         ret->type  = (GLenum)lua_tonumber(L, -1);
         lua_pop(L,1);
@@ -2036,6 +2051,47 @@ bool luaval_to_quaternion(lua_State* L,int lo,cocos2d::Quaternion* outValue, con
         lua_pushstring(L, "w");
         lua_gettable(L, lo);
         outValue->w = lua_isnil(L, -1) ? 0 : lua_tonumber(L, -1);
+        lua_pop(L, 1);
+    }
+    return ok;
+}
+
+bool luaval_to_texparams(lua_State* L,int lo,cocos2d::Texture2D::TexParams* outValue, const char* funcName)
+{
+    if (nullptr == L || nullptr == outValue)
+        return false;
+    
+    bool ok = true;
+    
+    tolua_Error tolua_err;
+    if (!tolua_istable(L, lo, 0, &tolua_err) )
+    {
+#if COCOS2D_DEBUG >=1
+        luaval_to_native_err(L,"#ferror:",&tolua_err,funcName);
+#endif
+        ok = false;
+    }
+    
+    if (ok)
+    {
+        lua_pushstring(L, "minFilter");
+        lua_gettable(L, lo);
+        outValue->minFilter = lua_isnil(L, -1) ? 0 : lua_tonumber(L, -1);
+        lua_pop(L, 1);
+        
+        lua_pushstring(L, "magFilter");
+        lua_gettable(L, lo);
+        outValue->magFilter = lua_isnil(L, -1) ? 0 : lua_tonumber(L, -1);
+        lua_pop(L, 1);
+        
+        lua_pushstring(L, "wrapS");
+        lua_gettable(L, lo);
+        outValue->wrapS = lua_isnil(L, -1) ? 0 : lua_tonumber(L, -1);
+        lua_pop(L, 1);
+        
+        lua_pushstring(L, "wrapT");
+        lua_gettable(L, lo);
+        outValue->wrapT = lua_isnil(L, -1) ? 0 : lua_tonumber(L, -1);
         lua_pop(L, 1);
     }
     return ok;
@@ -2289,10 +2345,10 @@ void affinetransform_to_luaval(lua_State* L,const AffineTransform& inValue)
     lua_pushnumber(L, (lua_Number) inValue.d);               /* L: table key value*/
     lua_rawset(L, -3);                                  /* table[key] = value, L: table */
     lua_pushstring(L, "tx");                             /* L: table key */
-    lua_pushnumber(L, (lua_Number) inValue.d);               /* L: table key value*/
+    lua_pushnumber(L, (lua_Number) inValue.tx);               /* L: table key value*/
     lua_rawset(L, -3);                                  /* table[key] = value, L: table */
     lua_pushstring(L, "ty");                             /* L: table key */
-    lua_pushnumber(L, (lua_Number) inValue.d);               /* L: table key value*/
+    lua_pushnumber(L, (lua_Number) inValue.ty);               /* L: table key value*/
     lua_rawset(L, -3);                                  /* table[key] = value, L: table */
 }
 
@@ -3003,5 +3059,26 @@ void quaternion_to_luaval(lua_State* L,const cocos2d::Quaternion& inValue)
     lua_rawset(L, -3);
     lua_pushstring(L, "w");                             /* L: table key */
     lua_pushnumber(L, (lua_Number) inValue.w);             /* L: table key value*/
+    lua_rawset(L, -3);
+}
+
+void texParams_to_luaval(lua_State* L, const cocos2d::Texture2D::TexParams& inValue)
+{
+    if (nullptr  == L)
+        return;
+    
+    lua_newtable(L);                                     /* L: table */
+    
+    lua_pushstring(L, "minFilter");                      /* L: table key */
+    lua_pushnumber(L, (lua_Number) inValue.minFilter);   /* L: table key value*/
+    lua_rawset(L, -3);                                   /* table[key] = value, L: table */
+    lua_pushstring(L, "magFilter");                      /* L: table key */
+    lua_pushnumber(L, (lua_Number) inValue.magFilter);   /* L: table key value*/
+    lua_rawset(L, -3);
+    lua_pushstring(L, "wrapS");                          /* L: table key */
+    lua_pushnumber(L, (lua_Number) inValue.wrapS);       /* L: table key value*/
+    lua_rawset(L, -3);
+    lua_pushstring(L, "wrapT");                          /* L: table key */
+    lua_pushnumber(L, (lua_Number) inValue.wrapT);       /* L: table key value*/
     lua_rawset(L, -3);
 }

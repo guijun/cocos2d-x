@@ -71,11 +71,9 @@ extern "C"
 #include "base/pvr.h"
 #include "base/TGAlib.h"
 
-#if (CC_TARGET_PLATFORM != CC_PLATFORM_WP8) && (CC_TARGET_PLATFORM != CC_PLATFORM_WINRT)
 #if CC_USE_WEBP
 #include "decode.h"
 #endif // CC_USE_WEBP
-#endif
 
 #include "base/ccMacros.h"
 #include "CCCommon.h"
@@ -459,7 +457,7 @@ Image::Image()
 , _width(0)
 , _height(0)
 , _unpack(false)
-, _fileType(Format::UNKOWN)
+, _fileType(Format::UNKNOWN)
 , _renderFormat(Texture2D::PixelFormat::NONE)
 , _numberOfMipmaps(0)
 , _hasPremultipliedAlpha(true)
@@ -637,7 +635,6 @@ bool Image::isS3TC(const unsigned char * data, ssize_t dataLen)
     
     if (strncmp(header->fileCode, "DDS", 3) != 0)
     {
-        CCLOG("cocos2d: the file is not a dds file!");
         return false;
     }
     return true;
@@ -649,7 +646,6 @@ bool Image::isATITC(const unsigned char *data, ssize_t dataLen)
     
     if (strncmp(&header->identifier[1], "KTX", 3) != 0)
     {
-        CCLOG("cocos3d: the file is not a ktx file!");
         return false;
     }
     return true;
@@ -744,7 +740,8 @@ Image::Format Image::detectFormat(const unsigned char * data, ssize_t dataLen)
     }
     else
     {
-        return Format::UNKOWN;
+        CCLOG("cocos2d: can't detect image format");
+        return Format::UNKNOWN;
     }
 }
 

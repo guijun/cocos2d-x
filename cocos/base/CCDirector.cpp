@@ -2,7 +2,7 @@
 Copyright (c) 2008-2010 Ricardo Quesada
 Copyright (c) 2010-2013 cocos2d-x.org
 Copyright (c) 2011      Zynga Inc.
-Copyright (c) 2013-2014 Chukong Technologies Inc.
+Copyright (c) 2013-2015 Chukong Technologies Inc.
 
 http://www.cocos2d-x.org
 
@@ -107,6 +107,7 @@ Director* Director::getInstance()
 }
 
 Director::Director()
+: _isStatusLabelUpdated(true)
 {
 }
 
@@ -145,6 +146,8 @@ bool Director::init(void)
 
     _contentScaleFactor = 1.0f;
 
+    _console = new (std::nothrow) Console;
+
     // scheduler
     _scheduler = new (std::nothrow) Scheduler();
     // action manager
@@ -167,14 +170,6 @@ bool Director::init(void)
     initMatrixStack();
 
     _renderer = new (std::nothrow) Renderer;
-
-    _console = new (std::nothrow) Console;
-    
-    // default clear color
-    _clearColor.r = 0;
-    _clearColor.g = 0;
-    _clearColor.b = 0;
-    _clearColor.a = 1.0;
 
     return true;
 }
@@ -254,13 +249,8 @@ void Director::setGLDefaultValues()
     CCASSERT(_openGLView, "opengl view should not be null");
 
     setAlphaBlending(true);
-    // FIXME: Fix me, should enable/disable depth test according the depth format as cocos2d-iphone did
-    // [self setDepthTest: view_.depthFormat];
     setDepthTest(false);
     setProjection(_projection);
-
-    // set other opengl default values
-    glClearColor(_clearColor.r, _clearColor.g, _clearColor.b, _clearColor.a);
 }
 
 // Draw the Scene
@@ -281,7 +271,7 @@ void Director::drawScene()
         _eventDispatcher->dispatchEvent(_eventAfterUpdate);
     }
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    _renderer->clear();
 
     /* to avoid flickr, nextScene MUST be here: after tick and before draw.
      * FIXME: Which bug is this one. It seems that it can't be reproduced with v0.9
@@ -397,7 +387,7 @@ void Director::setOpenGLView(GLView *openGLView)
         // set size
         _winSizeInPoints = _openGLView->getDesignResolutionSize();
 
-        createStatsLabel();
+        _isStatusLabelUpdated = true;
 
         if (_openGLView)
         {
@@ -710,24 +700,12 @@ void Director::setAlphaBlending(bool on)
 
 void Director::setDepthTest(bool on)
 {
-    if (on)
-    {
-        glClearDepth(1.0f);
-        glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LEQUAL);
-//        glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-    }
-    else
-    {
-        glDisable(GL_DEPTH_TEST);
-    }
-    CHECK_GL_ERROR_DEBUG();
+    _renderer->setDepthTest(on);
 }
 
 void Director::setClearColor(const Color4F& clearColor)
 {
-    _clearColor = clearColor;
-    glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
+    _renderer->setClearColor(clearColor);
 }
 
 static void GLToClipTransform(Mat4 *transformOut)
@@ -1133,10 +1111,16 @@ void Director::resume()
 // updates the FPS every frame
 void Director::showStats()
 {
+    if (_isStatusLabelUpdated)
+    {
+        createStatsLabel();
+        _isStatusLabelUpdated = false;
+    }
+
     static unsigned long prevCalls = 0;
     static unsigned long prevVerts = 0;
-    static float prevDeltaTime  = 0.016; // 60FPS
-    static const float FPS_FILTER = 0.10;
+    static float prevDeltaTime  = 0.016f; // 60FPS
+    static const float FPS_FILTER = 0.10f;
 
     _accumDt += _deltaTime;
     
@@ -1182,7 +1166,7 @@ void Director::showStats()
 void Director::calculateMPF()
 {
     static float prevSecondsPerFrame = 0;
-    static const float MPF_FILTER = 0.10;
+    static const float MPF_FILTER = 0.10f;
 
     struct timeval now;
     gettimeofday(&now, nullptr);
@@ -1278,7 +1262,7 @@ void Director::setContentScaleFactor(float scaleFactor)
     if (scaleFactor != _contentScaleFactor)
     {
         _contentScaleFactor = scaleFactor;
-        createStatsLabel();
+        _isStatusLabelUpdated = true;
     }
 }
 

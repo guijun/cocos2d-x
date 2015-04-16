@@ -1,27 +1,31 @@
-# cocos2d-x v3.4 Release Notes #
+# cocos2d-x v3.6 Release Notes #
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-**Table of Contents**  *generated with [DocToc](http://doctoc.herokuapp.com/)*
+- [Misc Information](#misc-information)
+- [Requirements](#requirements)
+  - [Runtime Requirements](#runtime-requirements)
+  - [Compiler Requirements](#compiler-requirements)
+  - [How to run tests](#how-to-run-tests)
+    - [Mac OSX & iOS](#mac-osx-&-ios)
+    - [Android](#android)
+    - [Windows](#windows)
+    - [Linux](#linux)
+  - [How to start a new game](#how-to-start-a-new-game)
+- [v3.6alpha0](#v36alpha0)
+  - [Highlights of v3.6beta0](#highlights-of-v36beta0)
+  - [Features in detail](#features-in-detail-1)
+    - [3D TextureCube](#3d-texturecube)
+    - [3D Skybox](#3d-skybox)
+    - [3D Terrain](#3d-terrain)
+    - [Animate3D Quality Control](#animate3d-quality-control)
 
-- [cocos2d-x v3.4 Release Notes](#)
-- [Misc Information](#)
-- [Requirements](#)
-    - [Runtime Requirements](#)
-    - [Compiler Requirements](#)
-    - [How to run tests](#)
-        - [Mac OSX & iOS](#)
-        - [Android](#)
-        - [Windows](#)
-        - [Linux](#)
-    - [How to start a new game](#)
-- [v3.4rc0](#)
-    - [Bugs fixed in v3.4rc0](#)
-- [v3.4beta0](#)
-    - [Highlights of v3.4beta0](#)
-    - [Features in detail](#)
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 # Misc Information
 
-* Full Changelog: https://github.com/cocos2d/cocos2d-x/blob/cocos2d-x-3.4rc0/CHANGELOG
+* [Full Changelog](https://github.com/cocos2d/cocos2d-x/blob/v3/CHANGELOG)
 * v3.0 Release Notes can be found here: [v3.0 Release Notes](https://github.com/cocos2d/cocos2d-x/blob/cocos2d-x-3.0/docs/RELEASE_NOTES.md)
 
 # Requirements
@@ -62,7 +66,7 @@ You can run the samples...
     $ cd build
     $ ./android-build.py cpp-empty-test -p 10
     $ adb install cocos2d-x/tests/cpp-empty-test/proj.android/bin/CppEmptyTest-debug.apk
-    
+
 Then click item on Android device to run tests. Available value of `-p` is the API level, cocos2d-x supports from level 10.
 
 **Using Eclipse:**
@@ -71,7 +75,7 @@ Then click item on Android device to run tests. Available value of `-p` is the A
     $ ./setup.py
     $ cd build
     $ ./android-build.py cpp-empty-test -p 10
-    
+
 Then
 
 * Import cocos2d-x Android project into Eclipse, the path used to import is `cocos/2d/platform/android`
@@ -90,155 +94,146 @@ Then
     $ cd cocos2d-x/build
     $ ./install-deps-linux.sh
     $ cd ../..
-    
+
 Then
 
     $ mkdir build
     $ cd build
     $ cmake ../cocos2d-x
     $ make -j4
-    
+
 Run
 
     $ cd bin/cpp-empty-test
     $ ./cpp-empty-test
-    
+
 ## How to start a new game
 
 Please refer to this document: [ReadMe](../README.md)
 
-# v3.4rc0
-##Bugs fixed in v3.4rc0
-* FileUtils::GetData() can not get data on windows
-* FileUtils::GetData() memory leaks when file size is 0 on windows
-* Crash if GLProgram log compile or link error info on windows
-* Assert error exist because of outdated uniforms and attributes in GLProgramState when app come to foreground on android
-* GL_INVALID_OPERATION error because VAO and VBO is not reset when app come to foreground on android
-* Update Luajit to v2.0.3, it fix some crash problems on windows
-* Update libcurl to new version v7.39.0
-* More bugs fixed
+# v3.6alpha0
 
-# v3.4beta0
+## Highlights of v3.6alpha0
 
-## Highlights of v3.4beta0
-
-
+* 3D: added skybox support
+* 3D: added terrian support
+* uses luajit v2.1-20150331 on 64-bit iOS devices
+* added test automation support for cpp-tests
+* 3rd: updated libcurl to v7.4 on all supported platforms except WP8/WP8.1 universal
+* 3rd: updated chipmunk to v6.2.2
+* 3rd: updated openssl to v1.0.11
+* 3rd: updated freetype to v2.5.5
+* 3rd: updated png to v1.6.16 on all supported platforms except WP8/WP8.1 universal because it is not needed on these two platforms
 
 ## Features in detail
 
-### Create Sprite3D asynchronously
+### 3D TextureCube
 
-It allows to load Sprite3D in another thread so that you can process more logic in the main thread. And it notifies you using a custom callback after creating is finished.
+TextureCube is useful for skybox and environment mapping. It uses 6 faces of a cube as map shape, and 6 pictures are projected onto the sides of a cube and stored as six square textures.
 
-`modelPath` is the file to be loaded, `AsyncLoadSprite3DTest::asyncLoad_Callback` is the user's callback function, `userParam` is the parameter that the callback function is wanted.
+#### TexturesCube usage
 
 ```c++
-Sprite3D::createAsync(modelPath, CC_CALLBACK_2(AsyncLoadSprite3DTest::asyncLoad_Callback, this), (void*)userParam);
+auto texturecube = TextureCube::create("left.jpg", "right.jpg", "top.jpg", "bottom.jpg","front.jpg", "back.jpg");
+//set texture parameters
+Texture2D::TexParams tRepeatParams;
+tRepeatParams.magFilter = GL_NEAREST;
+tRepeatParams.minFilter = GL_NEAREST;
+tRepeatParams.wrapS = GL_MIRRORED_REPEAT;
+tRepeatParams.wrapT = GL_MIRRORED_REPEAT;
+texturecube->setTexParameters(tRepeatParams);
+
+//create a GLProgramState using custom shader
+auto shader = GLProgram::createWithFilenames("cube_map.vert", "cube_map.frag");
+auto state = GLProgramState::create(shader);
+// pass the texture sampler to our custom shader, state is a pointer of GLProgramState, u_cubeTex is a uniform in shader
+state->setUniformTexture("u_cubeTex", texturecube);
 ```
 
-The callback function is called after loading Sprite3D, the callback function can be something like this,
+Then the shader cube_map.frag can be something like this,
 
 ```c++
-void AsyncLoadSprite3DTest::asyncLoad_Callback(Sprite3D* sprite, void* param)
+varying vec3        v_reflect; //reflect direction
+uniform samplerCube u_cubeTex;
+
+void main(void)
 {
-    //sprite is the loaded sprite
-    sprite->setPosition(point);
-    addChild(sprite);
+    gl_FragColor = textureCube(u_cubeTex, v_reflect); //sample the color of reflection direction
 }
 ```
 
-### Frustum culling
+For more information please refer to cpp-tests/Sprite3DTest/Sprite3DCubeMapTest.
 
-Frustum culling means only the stuff that is inside the frustum is sent to the graphics hardware. It can potentially improve the performance of the application since only the vertices that are part of the visible part of the 3D world are kept on the graphics card memory.
+### 3D Skybox
 
-Frustum culling is a property of camera, it is enabled by default. And you can use the following to enable or disable the frustum culling,
+Skybox is a common component in 3D game. It is based on TextureCube.
 
-```c++
-//the first parameter is enable frustum culling or not, the second means that frustum culling using near and far plan or not.
-camera->enableFrustumCulling(true, true);
-```
-
-Note that when you can make sure that all the stuff is inside the frustum you can turn off the frustum culling.
-
-For more infomation please reffer to the cpptests/CameraTest
-
-### Use less resources to create  ui::CheckBox and ui::Slider 
-
-Now we could use less resources to create  ui::CheckBox and ui::Slider.
-
-To create an ui::CheckBox, we could simply pass the normal state box and active texture.
-
-```cpp
-CheckBox* checkBox2 = CheckBox::create("cocosui/check_box_normal.png",
-                                              "cocosui/check_box_active.png");
-```
-
-To create an ui::Slider, we could only pass the slider bar texture and normal ball texture.
-
-```cpp
-Slider* sliderScale9 = Slider::create("cocosui/slidbar.png", "cocosui/sliderballnormal.png");
-```
-
-If the selected state texture is missing, when user press the widget, the normal texture will scale.
-
-If the disable state texture is missing, when the widget is in disable state, we use gray shader to turn the normal state texture to gray.
-
-The original ui::Button also support the gray shader enhancement.
-
-### Custom Allocators
-
-in ccConfig.h you can control the custom allocator system with the following defines.
+Usage of skybox
 
 ```c++
-#define CC_ENABLE_ALLOCATOR 1
-#define CC_ENABLE_ALLOCATOR_DIAGNOSTICS CC_ENABLE_ALLOCATOR
-#define CC_ENABLE_ALLOCATOR_GLOBAL_NEW_DELETE 0
-
-#define CC_ALLOCATOR_GLOBAL cocos2d::allocator::AllocatorStrategyDefault
-#define CC_ALLOCATOR_GLOBAL_NEW_DELETE cocos2d::allocator::AllocatorStrategyGlobalSmallBlock
+// create a texture cube
+auto textureCube = TextureCube::create("left.jpg", "right.jpg","top.jpg", "bottom.jpg","front.jpg", "back.jpg");
+//create a skybox
+auto skyBox = Skybox::create();
+skyBox->retain();
+//set cube texture to the skybox
+skyBox->setTexture(textureCube);
+addChild(_skyBox);
 ```
 
-__CC_ENABLE_ALLOCATOR__ turns everything on or off. When set to 0, everything should still build, but all custom allocator code is disabled or removed. This is handled mainly through macros, but if you implement new allocator strategies, you should be aware of, and respect this preprocessor directive.
+For more information please refer to cpp-tests/Sprite3DTest/Sprite3DCubeMapTest.
 
-__CC_ENABLE_ALLOCATOR_DIAGNOSTICS__ defaults to the same value as __CC_ENABLE_ALLOCATOR__, but setting this to 0 will disable allocator diagnostics via the control panel. Diagnostics have significant overhead, so you definitely want to disable them for production builds.
+### 3D Terrain
 
-__CC_ENABLE_ALLOCATOR_GLOBAL_NEW_DELETE__ enables overriding of the global __new__ and __delete__ operators. The allocator strategy used can be selected by setting the __CC_ALLOCATOR_GLOBAL_NEW_DELETE__ define.
+Terrain is an important component in 3D game. A texture is used to stand for the height map. And up to 4 textures can be used to blend the details of the terrain, grass, road, and so on.
 
-__CC_ALLOCATOR_GLOBAL__ defines the allocator strategy to use for global allocations. All memory needed by other allocators will use this global allocator, as well as the macros __CC_MALLOC__, __CC_FREE__ etc.
-
-Third party libraries that use malloc/free will continue to use the original malloc/free so their memory usage will not be tracked.
-
-Calls to new/delete from shared libraries should work ok provided the library is loaded after the allocator has initialized, which should be the case, unless you load a shared library from a static variable initialization.
-
-#### Default Allocator
-
-The default allocator wraps malloc and free and provides an allocator interface that anyone can use to allocate blocks of memory. Tracking is not currently enabled here, but can be added in the future.
-
-#### General Allocator
-
-The general allocator provides a series of fixed sized allocators from the smallest allocation size of 4 bytes up to some threshold which currently defaults to 8 Kbytes. Anything larger than this threshold will fallback to the default allocator. See fixed allocators for more details.
-
-#### Fixed Block Allocator
-
-Fixed block allocators provide a memory pool of blocks of fixed size. They are extremely fast since no searching for best fit is required, they can simply pop the first block off a list and return that. Similarly, freeing memory is also extremely fast since they just push the block on the front of the list. Memory is not actually freed, it is kept allocated and track on a free list. It will be possible to reduce the allocated memory by freeing up unused pages of memory from the list.
-
-#### Pool Allocator
-
-Implements a custom fixed block allocator for a specific type. You can override local new/delete for types that are classes or structs using __CC_USE_ALLOCATOR_POOL(pool)__. Additionally, these allocators are configurable in terms of the initial size. 
-
-### Implementing Custom Allocators for Objects
-Simply add a static instance of the pool allocator to your class, and use the __CC_USE_ALLOCATOR_POOL__ macro to implement operators __new__ and __delete__ for your class. 
+Usage of terrain
 
 ```c++
-    class SomeClass
-    {
-    public:
-        
-        cocos2d::allocator::AllocatorStrategyPool<SomeClass> _allocator;
-        CC_USE_ALLOCATOR_POOL(SomeClass, _allocator);
-    };
+//blended layers
+Terrain::DetailMap dirt("TerrainTest/dirt.jpg"), grass("TerrainTest/Grass2.jpg"), road("TerrainTest/road.jpg"), green("TerrainTest/GreenSkin.jpg");
+
+//height map, alpha map (blend weight), and blended layers
+Terrain::TerrainData data("TerrainTest/heightmap16.jpg", "TerrainTest/alphamap.png", dirt, grass, road, green);
+
+//create terrain here
+_terrain = Terrain::create(data,Terrain::CrackFixedType::SKIRT);
+//set lod distance
+_terrain->setLODDistance(3.2,6.4,9.6);
+//it must be less than 5
+_terrain->setMaxDetailMapAmount(4);
+addChild(_terrain);
 ```
 
-### Console (allocator command, tags, counts etc)
+For more information please refer to cpp-tests/Sprite3DTest/TerrainTest.
 
-You can connect to the running app using the console. I.e. __telnet localhost 5678__ and issue the __allocator__ command to dump out all allocator diagnostic information. One of the useful pieces of information is the highest count for pool allocators. You can plug this value back into the initial size for the allocator to preallocate this number of objects when starting, improving startup speed significantly.
+### Animate3D Quality Control
+
+In order to make `Animate3D` run fast, you can use low quality animation.
+
+```c++
+std::string fileName = "Sprite3DTest/orc.c3b";
+auto sprite = Sprite3D::create(fileName);
+addChild(sprite);
+    
+auto animation = Animation3D::create(fileName);
+if (animation)
+{
+   auto animate = Animate3D::create(animation);
+   //use low quality animation
+   animate->setHighQuality(false);
+   sprite->runAction(RepeatForever::create(animate));
+}
+```
+
+The animation quality is also configurable in config.plist, the key is cocos2d.x.3d.animate_high_quality. All the created `Animate3D` base on this key if exist. You can modify it using the above method.
+
+### luajit arm64 
+
+The version of the luajit is [v2.1-20150331](https://github.com/openresty/luajit2/releases). We have consulted the author of luajit, he said it was stability enough to be used. We will update to v2.1 when it is released.
+
+Using luajit arm64 version is that because it can improve the performance. In previous versions of cocos2d-x, it uses lua on iOS 64-bit devices. 
+
+Bytecode of luajit and luajit arm64 are not compatible, which means you can not use one version of bytecode on iOS 32-bit devices and iOS 64-bit devices.
+
+As there is not mandatory requirement of having arm64 bit bin on Android, so we don't use luajit arm64 on Android as its bytecode is not compatible with luajit arm32.
